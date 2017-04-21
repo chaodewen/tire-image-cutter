@@ -32,3 +32,4 @@ hs_err_pid*
 
 # for opencv
 /lib/opencv-3.2.0
+/lib/opencv
