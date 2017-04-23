@@ -23,7 +23,7 @@ public class TireCutter {
     private static boolean handle(String src, String target) {
         Mat input = Imgcodecs.imread(src, Imgcodecs.IMREAD_GRAYSCALE), binaryImage = new Mat();
 
-        Imgproc.threshold(input, binaryImage, 127, 255, Imgproc.THRESH_OTSU);
+        Imgproc.threshold(input, binaryImage, 10, 255, Imgproc.THRESH_OTSU);
 
         System.out.println(binaryImage.channels());
         System.out.println(binaryImage.size());
@@ -39,6 +39,7 @@ public class TireCutter {
 //            System.out.println();
 //        }
 
+//        int start = findNextBar(binaryImage, 0, false);
         int leftBegin = findNextBar(binaryImage, 0, true), leftEnd = findNextBar(binaryImage, leftBegin, false);
         int midBegin = findNextBar(binaryImage, leftEnd, true), midEnd = findNextBar(binaryImage, midBegin, false);
         int rightBegin = findNextBar(binaryImage, midEnd, true), rightEnd = findNextBar(binaryImage, rightBegin, false);
@@ -50,12 +51,37 @@ public class TireCutter {
         }
 
         Mat output = Imgcodecs.imread(src);
-        for(int i = 0; i < input.height(); i ++)
-            for(int j = 0; j < input.width(); j ++) {
-                output.get(i, j)[0] = binaryImage.get(i, j)[0];
-                output.get(i, j)[1] = binaryImage.get(i, j)[0];
-                output.get(i, j)[2] = binaryImage.get(i, j)[0];
+
+        int white = 0, black = 0, cntw = 0, cntb = 0;
+        for (int i = 0; i < input.height(); i ++) {
+            int w = 0, b = 0;
+            for (int j = 0; j < input.width(); j++) {
+                if(binaryImage.get(i, j)[0] == 0) {
+                    cntw ++;
+                    w ++;
+                }
+                else if(binaryImage.get(i, j)[0] == 255) {
+                    cntb ++;
+                    b ++;
+                }
+                output.put(i, j, binaryImage.get(i, j)[0], binaryImage.get(i, j)[0], binaryImage.get(i, j)[0]);
             }
+            if(w > 1030)
+                white ++;
+            if(b > 800)
+                black ++;
+        }
+
+        System.out.println("white : " + white);
+        System.out.println("black : " + black);
+
+        System.out.println("cntw : " + cntw);
+        System.out.println("cntb : " + cntb);
+
+//        Imgproc.floodFill(binaryImage, new Mat(300, 1000, Imgproc.THRESH_OTSU), new Point(0, 0), new Scalar(0, 255, 0));
+//        Imgcodecs.imwrite("/Users/Cc/Desktop/flood.jpg", binaryImage);
+
+//        System.out.println("start : " + start);
         System.out.println(leftBegin + ", " + leftEnd);
         Imgproc.rectangle(output, new Point(leftBegin, 0), new Point(leftEnd, output.height() - 1)
                 , new Scalar(0, 255, 0));
@@ -73,30 +99,35 @@ public class TireCutter {
     private static int findNextBar(Mat input, int curCol, boolean white) {
         if(white) {
             int totalCnt = 0, idx = -1;
-            for (int j = curCol - 10 > 0 ? curCol : 10; j < input.width() - 10; j ++) {
+            for (int j = curCol; j < input.width(); j ++) {
                 int cnt = 0;
-                for (int i = 0; i < input.height(); i++)
+                for (int i = 0; i < input.height(); i ++)
                     if (input.get(i, j)[0] == 0)
                         cnt ++;
-                if(cnt > 100) {
-                    if(totalCnt == 0)
-                        idx = j - 1;
-                    totalCnt ++;
+                if(cnt != input.height()) {
+                    if(cnt > 300) {
+                        if(totalCnt == 0)
+                            idx = j - 1;
+                        totalCnt ++;
+                    }
+                    else
+                        totalCnt = 0;
+                    if(totalCnt > 10) {
+//                    for(int i = 0; i < input.height(); i ++)
+//                        System.out.println(input.get(i, idx)[0]);
+                        return idx;
+                    }
                 }
-                else
-                    totalCnt = 0;
-                if(totalCnt > 10)
-                    return idx;
             }
         }
         else {
             int totalCnt = 0, idx = -1;
-            for (int j = curCol - 10 > 0 ? curCol : 10; j < input.width() - 10; j ++) {
+            for (int j = curCol; j < input.width(); j ++) {
                 int cnt = 0;
                 for (int i = 0; i < input.height(); i++)
                     if (input.get(i, j)[0] == 255)
                         cnt++;
-                if(cnt > 900) {
+                if(cnt > 800) {
                     if(totalCnt == 0)
                         idx = j - 1;
                     totalCnt ++;
